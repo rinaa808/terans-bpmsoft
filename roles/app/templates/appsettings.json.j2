@@ -1,0 +1,102 @@
+{
+	"Kestrel": {
+		"Endpoints": {
+			"Http": {
+				"Url": "http://::{{ app_port }}"
+			},
+//			"Https": {
+//				"Url": "https://::5002",
+//				"Certificate": {
+//					"Path": "localhost.pfx",
+//					"Password": "BPMSoft+"
+//				}
+//			}
+		}
+	},
+	"PathBase": "",
+	"AllowedHosts": "*",
+	"DataProtection": {
+		"CustomizeDataProtection": false,
+		"ApplicationName": "bpmcrm",
+		"KeysDirectory": "DataProtectionKeys"
+	},
+	"Logging": {
+		"LogLevel": {
+			"Default": "Warning",
+			"Microsoft.AspNetCore.SignalR": "Warning",
+			"Microsoft.AspNetCore.Http.Connections": "Warning"
+		}
+	},
+	"CommonLogging": {
+		"factoryAdapter": {
+			"type": "Common.Logging.NLog.NLogLoggerFactoryAdapter, Common.Logging.NLog45",
+			"arguments": {
+				"configType": "FILE",
+				"configFile": "nlog.config"
+			}
+		}
+	},
+	"RequestLogging": {
+		"Standard": {
+			"Enabled": true,
+			"StatusCodes": []
+		},
+		"Extended": {
+			"Enabled": false,
+			"LogRequestBody": false,
+			"MaxBodySizeBytes": 500,
+			"StatusCodes": [ 400 ]
+		}
+	},
+	"CustomHeaders": {
+		"X-Frame-Options": "SAMEORIGIN"
+	},
+	"ConfigurationServices": {
+		"AnonymousRoutes": {
+			"BPMSoft.Configuration.ExchangeListenerService": [
+				"/ServiceModel/ExchangeListenerService.svc"
+			],
+			"BPMSoft.Configuration.GlobalSearch.IndexingConfigService": [
+				"/ServiceModel/IndexingConfigService.svc"
+			],
+			"BPMSoft.Configuration.CaseRatingManagementService.CaseRatingManagementService": [
+				"/ServiceModel/CaseRatingManagementService.svc"
+			],
+			"BPMSoft.Configuration.Omnichannel.Messaging.OmnichannelMessagingService": [
+				"/ServiceModel/OmnichannelMessagingService.svc"
+			],
+			"BPMSoft.Configuration.Omnichannel.Messaging.FacebookOmnichannelMessagingService": [
+				"/ServiceModel/FacebookOmnichannelMessagingService.svc"
+			],
+			"BPMSoft.Configuration.Omnichannel.Messaging.WhatsAppOmnichannelMessagingService": [
+				"/ServiceModel/WhatsAppOmnichannelMessagingService.svc"
+			],
+			"BPMSoft.Configuration.Omnichannel.Messaging.TelegramOmnichannelMessagingService": [
+				"/ServiceModel/TelegramOmnichannelMessagingService.svc"
+			],
+			"BPMSoft.Configuration.ReportCallbackService": [
+				"/ServiceModel/ReportCallbackService.svc"
+			],
+			"BPMSoft.Configuration.GeneratedWebFormService.GeneratedObjectWebFormService": [
+				"/ServiceModel/GeneratedObjectWebFormService.svc"
+			],
+			"BPMSoft.Configuration.CESWebHooksService": [
+				"/ServiceModel/CESWebHooksService.svc"
+			],
+			"BPMSoft.Configuration.EventTrackingService.EventTrackingService": [
+				"/ServiceModel/EventTrackingService.svc"
+			],
+			"BPMSoft.Configuration.SocialLeadGen.SocialLeadGenWebhookService": [
+				"/ServiceModel/SocialLeadGenWebhookService.svc"
+			],
+			"BPMSoft.Configuration.AlmPortal.AlmUserService": [
+				"/ServiceModel/AlmUserService.svc"
+			]
+		}
+	},
+	"ForwardedHeaders": {
+		"Enable": false,
+		"ForwardedForHeaderName": "X-Forwarded-For",
+		"KnownProxiesIP": []
+	}
+}

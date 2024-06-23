@@ -1,0 +1,14 @@
+[Unit]
+Description={{ app_prefix }}_{{ app_port }} .NET Web API Application
+
+[Service]
+WorkingDirectory={{ dest }}{{app_prefix }}_{{ app_port }}
+ExecStart=/usr/bin/dotnet  {{ dest }}{{app_prefix }}_{{ app_port }}/BPMSoft.WebHost.dll
+Restart=always
+RestartSec=10
+SyslogIdentifier={{app_prefix }}_{{ app_port }}
+User=root
+Environment=ASPNETCORE_ENVIRONMENT=Production
+
+[Install]
+WantedBy=multi-user.target

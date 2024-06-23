@@ -1,0 +1,8 @@
+---
+# defaults file for app
+db_password: "P@$$w0rd"
+dest: "/srv/"
+app_prefix: "bpmsoft"
+app_port: 5014
+distr: "Constructor_1.2.0.3013_Core_PostgreSQL.zip"
+patch: "ITSMBOX_Linux_Sql_dll_fix.zip"

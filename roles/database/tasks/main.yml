@@ -1,0 +1,215 @@
+---
+# tasks file for database
+- name: Print password
+  ansible.builtin.debug:
+    var: db_password
+    
+- name: "Install packages"
+  apt: "name={{ item }} state=present"
+  with_items:
+    - python3-psycopg2
+    - acl
+    - gnupg
+    - libpq-dev
+    
+- name: Install postgresql 12
+  become: yes
+  block:
+  - apt:
+      name: apt-transport-https
+      state: latest
+  - apt_repository:
+      repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main
+      state: present
+      filename: pgdg
+      update_cache: no
+- apt_key:
+      url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+      state: present
+- apt:
+      update_cache: yes
+      force: yes
+- apt:
+    name:
+      - postgresql-12
+      - postgresql-client-common
+    state: present
+  
+- name: "Start and enable services"
+  service: "name={{ item }} state=started enabled=yes"
+  with_items:
+    - postgresql    
+    
+- name: Set max_locks_per_transaction parameter
+  community.postgresql.postgresql_set:
+    name: max_locks_per_transaction
+    value: 256
+  register: set
+  become: yes
+  become_user: postgres  
+- name: Set max_pred_locks_per_transaction parameter
+  community.postgresql.postgresql_set:    
+    name: max_pred_locks_per_transaction
+    value: 1000    
+  register: set
+  become: yes
+  become_user: postgres
+- name: Set max_connections parameter
+  community.postgresql.postgresql_set:    
+    name: max_connections
+    value: 10000    
+  register: set
+  become: yes
+  become_user: postgres
+- name: Set shared_buffers parameter
+  community.postgresql.postgresql_set:    
+    name: shared_buffers
+    value: 2048MB  
+#  register: set
+  become: yes
+  become_user: postgres
+  
+- name: Print the result if the setting changed
+  ansible.builtin.debug:
+    msg: "{{ set.name }} {{ set.prev_val_pretty }} >> {{ set.value_pretty }} restart_req: {{ set.restart_required }}"
+  when: set.changed
+
+  
+- name: "Restart postgresql"
+  service: "name={{ item }} state=restarted"
+  with_items:
+    - postgresql
+  when: set.restart_required
+
+- name: "Backup database"
+  block:
+    - name: "Create backup directory"
+      file:
+        path: "/srv/backup/{{ bkpdate }}/{{ app_prefix }}_{{ app_port }}/"
+        state: directory
+        mode: 0777
+    - name: "Create database backup"
+      postgresql_db:
+        state: dump
+        name: "{{ app_prefix }}_{{ app_port }}"
+        target: "/srv/backup/{{ bkpdate }}/{{ app_prefix }}_{{ app_port }}/{{ app_prefix }}_{{ app_port }}.dump.pgc"
+      become: yes
+      become_user: postgres
+  when: mkbackup
+  
+- name: "Drop database"
+  block:
+    - name: "Drop app database"
+      postgresql_db:
+        state: absent
+        name: "{{ app_prefix }}_{{ app_port }}"
+      become: yes
+      become_user: postgres
+    - name: "Drop app user"
+      postgresql_user:
+        state: absent
+        name: "{{ app_prefix }}_{{ app_port }}"
+      become: yes
+      become_user: postgres      
+  when: redeploy
+
+- name: "Create app database"
+  postgresql_db:
+    state: present
+    name: "{{ app_prefix }}_{{ app_port }}"
+  register: database_exists
+  become: yes
+  become_user: postgres
+
+- name: "Configure app database"
+  block:
+    - name: "Create db user"
+      postgresql_user:
+        state: present
+        name: "{{ app_prefix }}_{{ app_port }}"
+        password: "{{ db_password }}"
+      become: yes
+      become_user: postgres
+
+    - name: "Create owner for restore dump"
+      postgresql_user:
+        state: present
+        name: "{{ item }}"
+        password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_lowercase', 'digits'], length=16) }}"
+      with_items:
+        - "{{ db_owners }}"
+      become: yes
+      become_user: postgres
+      
+
+    - name: "Grant db user access to app db"
+      postgresql_privs:
+        type: database
+        database: "{{ app_prefix }}_{{ app_port }}"
+        roles: "{{ app_prefix }}_{{ app_port }}"
+        grant_option: no
+        privs: all
+      become: yes
+      become_user: postgres
+
+    - name: "Allow md5 connection for the db user"
+      postgresql_pg_hba:
+        dest: "/etc/postgresql/12/main/pg_hba.conf"
+        contype: host
+        databases: all
+        method: md5
+        users: "{{ app_prefix }}_{{ app_port }}"
+        create: true
+      become: yes
+      become_user: postgres
+      notify: restart postgres
+
+    - name: "Copy backup to the server"
+      copy:
+        src: "{{ backup_file }}"
+        dest: "/tmp/{{ backup_file | basename }}.pgc"
+
+    - name: "Restore the database"
+      postgresql_db:
+        state: restore
+        name: "{{ app_prefix }}_{{ app_port }}"
+        target: "/tmp/{{ backup_file | basename }}.pgc"
+      become: yes
+      become_user: postgres
+      
+
+    # - name: "Reassign all database objects owner"
+      # community.postgresql.postgresql_owner:
+        # db: "{{ app_prefix }}_{{ app_port }}"
+        # new_owner: "{{ app_prefix }}_{{ app_port }}"
+        # reassign_owned_by:
+        # - "{{ db_owner }}"
+      # become: yes
+      # become_user: postgres
+     
+    - name: "Copy sql script ChangeDbObjectsOwner_Postgres11.v2.sql to the server"
+      copy:
+        src: "ChangeDbObjectsOwner_Postgres11.v2.sql"
+        dest: "/tmp/ChangeDbObjectsOwner_Postgres11.v2.sql"
+    - name: "Copy sql script CreateTypeCastsPostgreSql.sql to the server"
+      copy:
+        src: "CreateTypeCastsPostgreSql.sql"
+        dest: "/tmp/CreateTypeCastsPostgreSql.sql"
+        
+    - name: Create TypeCasts PostgreSql
+      community.postgresql.postgresql_script:
+        db: "{{ app_prefix }}_{{ app_port }}"
+        path: /tmp/CreateTypeCastsPostgreSql.sql
+      become: yes
+      become_user: postgres
+
+    - name: Change Db Objects Owner
+      community.postgresql.postgresql_script:
+        db: "{{ app_prefix }}_{{ app_port }}"
+        path: /tmp/ChangeDbObjectsOwner_Postgres11.v2.sql
+        named_args:
+          owner: "{{ app_prefix }}_{{ app_port }}"
+          # ON_ERROR_STOP: 1
+      become: yes
+      become_user: postgres
+  when: database_exists.changed

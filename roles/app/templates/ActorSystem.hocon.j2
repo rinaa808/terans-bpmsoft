@@ -1,0 +1,77 @@
+akka {
+	logger-startup-timeout = 25s
+	loggers = ["BPMSoft.ActorSystem.Logging.CommonsLogger, BPMSoft.ActorSystem"]
+	loglevel = INFO // DEBUG, INFO, WARNING, ERROR
+	log-config-on-start = off // on, off
+	actor {
+		debug {
+			receive = off  // only for actors marked by ILogReceive
+			autoreceive = off
+			lifecycle = off
+			event-stream = on
+			unhandled = on
+		}
+                deployment {
+                        /ProcessEngineActor/StartProcessActor {
+                                router = round-robin-pool
+                                nr-of-instances = 50
+                                resizer {
+                                    enabled = on
+                                    lower-bound = 5
+                                    upper-bound = 50
+                                }
+                        }
+                        /ProcessEngineActor/ContinueProcessActor {
+                                router = round-robin-pool
+                                nr-of-instances = 50
+                                resizer {
+                                    enabled = on
+                                    lower-bound = 5
+                                    upper-bound = 50
+                                }
+                        }
+                        /ProcessEngineActor/CancelProcessActor {
+                                router = round-robin-pool
+                                nr-of-instances = 30
+                                resizer {
+                                    enabled = on
+                                    lower-bound = 5
+                                    upper-bound = 30
+                                }
+                        }
+                        /TaskExecutorActor {
+                                router = round-robin-pool
+                                nr-of-instances = 50
+                                resizer {
+                                    enabled = on
+                                    lower-bound = 5
+                                    upper-bound = 50
+			}
+		}
+	}
+}
+BPMSoft {
+	actor {
+		deployment {
+			/ProcessEngineActor/StartProcessActor {
+				enable-buffered-routing = on
+				router = round-robin-pool
+				nr-of-instances = 50
+			}
+			/ProcessEngineActor/ContinueProcessActor {
+				enable-buffered-routing = on
+				router = round-robin-pool
+				nr-of-instances = 50
+			}
+			/TaskExecutorActor {
+				enable-buffered-routing = on
+				router = round-robin-pool
+				nr-of-instances = 50
+			}
+		}
+	}
+	taskExecutorActor {
+		log-long-running-tasks = on
+		long-running-task-threshold = 30s
+	}
+}

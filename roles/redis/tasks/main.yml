@@ -1,0 +1,32 @@
+---
+# tasks file for redis
+- name: "Install Redis"
+  apt: "name={{ item }} state=present"
+  with_items:
+    - redis-server
+    - python3-redis
+  register: redis_exists
+  
+- name: "Configure Redis"
+  block:
+    - name: Ensure Redis Configuration
+      template: src=redis.conf.j2 dest=/etc/redis/redis.conf owner=root group=root mode=0644
+  when: redis_exists.changed
+
+- name: "Start and enable redis"
+  service: "name={{ item }} state=started enabled=yes"
+  with_items:
+    - redis
+
+- name: "Restart redis"
+  service: "name={{ item }} state=restarted"
+  with_items:
+    - redis
+  when: redis_exists.changed    
+
+- name: Flush db
+  community.general.redis:
+    command: flush
+    db: "{{ app_port }}"
+    flush_mode: db  
+  when: redeploy

@@ -1,0 +1,5 @@
+#Отправка логов в файл
+if $programname == 'dotnet-bpmsoft-service' then /var/log/dotnet-bpmsoft-service.log
+#Отправка логов на syslog сервер
+#if $programname == 'dotnet-bpmsoft-service' then @@elk.dpr.norbit.ru:10514;jsontemplate
+& stop
