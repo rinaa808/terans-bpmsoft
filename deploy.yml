@@ -1,0 +1,33 @@
+---
+- hosts: all
+  become: yes
+
+  vars_files:
+    - vars.yml
+ 
+  pre_tasks:
+  - name: "Generate password"
+    set_fact:
+        user_password: "{{ lookup('ansible.builtin.password', '/dev/null', chars=['ascii_lowercase', 'digits'], length=16) }}"
+  - name: "Stop bpmsoft service"
+    service: name={{app_prefix }}_{{ app_port }} state=stopped enabled=yes
+    when: redeploy
+  - name: "Set timestamp of the backup"
+    set_fact:
+        now: "{{ lookup('pipe', 'date +%Y%m%d_%H%M') }}"
+    # when: mkbackup
+
+  roles:
+    - role: database
+      vars:
+        db_password: "{{ user_password }}"
+        bkpdate: "{{ now }}"
+    - role: redis
+    - role: app
+      vars:
+        db_password: "{{ user_password }}"
+        bkpdate: "{{ now }}"
+
+#ssh-agent bash
+#ssh-add .ssh/id_rsa        
+#for i in {5001..5016} ; do ansible-playbook deploy.yml --extra-vars "ansible_user=ansible ansible_ssh_private_key_file=.ssh/id_rsa app_port=$i backup_file=5023_2023.11.16.backup" ; done        

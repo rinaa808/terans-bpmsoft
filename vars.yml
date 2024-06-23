@@ -1,0 +1,20 @@
+---
+db_owners: 
+    - itsmbox_tmp_5024
+    - antipin   
+db_password: 0123456789!
+db_host: localhost
+redis_host: localhost
+backup_file: "zero_for_edu.backup"
+distr: "zero_for_edu.zip"
+patch: "ITSMBOX_Linux_Sql_dll_fix.zip"
+dest: "/srv/"
+app_prefix: "bpmsoft"
+app_port: 5001
+ansible_user: ansible
+ansible_ssh_private_key_file: .ssh/id_rsa
+redeploy: false
+mkbackup: false
+#kernel.shmmax = 100663296
+#fs.inotify.max_user_instances = 1024
+#fs.inotify.max_queued_events = 163840
