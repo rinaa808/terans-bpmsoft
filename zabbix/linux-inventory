@@ -1,0 +1,10 @@
+[linux]
+host1.local
+
+zabbix_interface_port="10050"
+zabbix_host_groups=["Linux servers"]
+zabbix_link_templates=["Linux by Zabbix agent"] zabbix_interface_type=agent 
+zabbix_interface_use_ip="0" 
+zabbix_interface_ip=""
+zabbix_host_description="My linux server"
+zabbix_host_status=enabled
